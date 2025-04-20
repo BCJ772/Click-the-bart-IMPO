@@ -1,0 +1,213 @@
+<!--
+Place this file as `index.html` in an empty folder.
+Download these sound files into the same folder:
+ - Bart “OW” sound effect as `ow.mp3`
+ - Milestone chime as `milestone.mp3`
+ - Background music as `bg-music.mp3`
+Then open `index.html` in your browser.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Click The Bart IMPO</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #fdf5d9;
+      overflow: hidden;
+      position: relative;
+      height: 100vh;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    h1 {
+      text-align: center;
+      font-size: 36px;
+      margin: 20px 0;
+      color: #333;
+      animation: bounce 1.5s infinite;
+    }
+    .counter {
+      position: fixed;
+      top: 80px;
+      left: 40px;
+      font-size: 28px;
+      color: #444;
+      background: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .bart {
+      position: absolute;
+      width: 120px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .bart:active {
+      transform: scale(0.9);
+    }
+    #music-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 15px;
+      background: #333;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #signature {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      font-size: 14px;
+      color: #333;
+      background: rgba(255,255,255,0.7);
+      padding: 5px 8px;
+      border-radius: 5px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Click The Bart IMPO</h1>
+  <div class="counter">Clicks: <span id="count">0</span></div>
+  <div id="signature">Made by BCJ</div>
+
+  <!-- Audio elements -->
+  <audio id="ow-sound" src="ow.mp3" preload="auto"></audio>
+  <audio id="milestone-sound" src="milestone.mp3" preload="auto"></audio>
+  <audio id="bg-music" src="bg-music.mp3" loop preload="auto"></audio>
+
+  <!-- Music toggle button -->
+  <button id="music-toggle">Play Music</button>
+
+  <!-- Bart container -->
+  <div id="bart-container"></div>
+
+  <script>
+    // Load stored clicks and bart count
+    const storedClicks = parseInt(localStorage.getItem('bartClicks')) || 0;
+    const storedBartCount = parseInt(localStorage.getItem('bartCount')) || 1;
+    let clicks;
+    if (confirm(`Continue progress with Bart? You have clicked ${storedClicks} times.`)) {
+      clicks = storedClicks;
+    } else {
+      clicks = 0;
+      localStorage.setItem('bartClicks', '0');
+      localStorage.setItem('bartCount', '1');
+    }
+    let bartCount = (clicks === storedClicks) ? storedBartCount : 1;
+
+    // Elements
+    const container = document.getElementById('bart-container');
+    const counter = document.getElementById('count');
+    const ow = document.getElementById('ow-sound');
+    const milestone = document.getElementById('milestone-sound');
+    const bgMusic = document.getElementById('bg-music');
+    const musicToggle = document.getElementById('music-toggle');
+
+    // State
+    let speed = 2000;
+    let sizeFactor = 1;
+    let musicPlaying = false;
+
+    counter.textContent = clicks;
+
+    // Music toggle
+    musicToggle.addEventListener('click', () => {
+      if (musicPlaying) {
+        bgMusic.pause();
+        musicToggle.textContent = 'Play Music';
+      } else {
+        bgMusic.play();
+        musicToggle.textContent = 'Pause Music';
+      }
+      musicPlaying = !musicPlaying;
+    });
+
+    // Create and animate bart
+    function createBart() {
+      const b = document.createElement('img');
+      b.src = 'https://upload.wikimedia.org/wikipedia/en/a/aa/Bart_Simpson_200px.png';
+      b.className = 'bart';
+      container.appendChild(b);
+      updateBart(b);
+      animateBart(b);
+      b.addEventListener('click', onBartClick);
+    }
+
+    function updateBart(b) {
+      b.style.width = (120 * sizeFactor) + 'px';
+      b.style.transition = `left ${speed}ms ease-in-out, top ${speed}ms ease-in-out, transform 0.2s ease`;
+    }
+
+    function animateBart(b) {
+      (function moveOnce() {
+        const maxX = window.innerWidth - b.clientWidth;
+        const maxY = window.innerHeight - b.clientHeight;
+        const x = Math.random() * maxX;
+        const y = Math.random() * maxY;
+        b.style.left = x + 'px';
+        b.style.top = y + 'px';
+        setTimeout(moveOnce, speed);
+      })();
+    }
+
+    function onBartClick() {
+      clicks++;
+      localStorage.setItem('bartClicks', clicks);
+      counter.textContent = clicks;
+
+      // 50-click event: triple barts
+      if (clicks % 50 === 0) {
+        alert("From here nobody has clicked me SO TRY ME!");
+        const current = bartCount;
+        sizeFactor *= 0.8;
+        speed = Math.max(300, speed - 300);
+        // spawn 2x more
+        for (let i = 0; i < current * 2; i++) createBart();
+        bartCount = bartCount * 3;
+        localStorage.setItem('bartCount', bartCount);
+        document.querySelectorAll('.bart').forEach(b => updateBart(b));
+      }
+
+      // Sound
+      if (clicks % 100 === 0) {
+        milestone.currentTime = 0;
+        milestone.play();
+      } else {
+        ow.currentTime = 0;
+        ow.play();
+      }
+
+      // Auto music start
+      if (!musicPlaying) {
+        bgMusic.play();
+        musicToggle.textContent = 'Pause Music';
+        musicPlaying = true;
+      }
+    }
+
+    // Initialize with stored bart count
+    for (let i = 0; i < bartCount; i++) createBart();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.bart').forEach(b => {
+        const maxX = window.innerWidth - b.clientWidth;
+        const maxY = window.innerHeight - b.clientHeight;
+        if (parseFloat(b.style.left) > maxX || parseFloat(b.style.top) > maxY) animateBart(b);
+      });
+    });
+  </script>
+</body>
+</html>
